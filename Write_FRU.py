@@ -9,30 +9,8 @@ import copy
 
 serial_Maps = {'XEM_002':{'S196050X9A25291':'VD197S001463'},'25G_100':{'S308088X9A04247':'OD198S039395'},'XEM_100':{}}
 bins = {'XEM_002':'FRU_MBM_XEM_002_V201_6.bin', '25G_100':'FRU_SBM_25G_100_V101_6.bin', 'XEM_100':'FRU_MBM_XEM_100_V101_6.bin'}
+inter_files = []
 
-#with SUM, change all IP in the ip file create to the password file, using the unique passwords
-def change_password(ip_to_password, password_file):
-    try:
-        tool_dir = os.environ["SUM_DIR"]
-    except KeyError:
-        msg = " **** ERROR **** Environment variable SUM_DIR is not set"
-        print(msg)
-        sys.exit()
-    tool_cmd = f'{tool_dir}/sum'
-    try:
-        with open("ip.txt",'r') as f:
-            with open(password_file,'r') as new_password:
-                for each_entry in f:
-                    ip = each_entry
-                    print(f'{ip}')
-                    password = ip_to_password[ip.strip()].strip()
-                    ip = ip.strip()
-                    subprocess.call([tool_cmd, '-i', ip, '-u', 'ADMIN','-p', password, '-c',
-                                     'SetBmcPassword', '--pw_file', password_file])
-                    print('\n')
-    except:
-        print("Error has occured")
-        sys.exit()
 def create_new_bin(model, sn):
     bin = 'bin\\'+ bins[model]
     map = serial_Maps[model]
@@ -40,6 +18,7 @@ def create_new_bin(model, sn):
 
     new_bin = run_ModifyFRU(bin, 'bs', bn)
     #print(new_bin)
+    inter_files.append(new_bin)
     new_bin = run_ModifyFRU(new_bin, 'ps', sn)
     file_name= sn + '.bin'
     try:
@@ -48,7 +27,8 @@ def create_new_bin(model, sn):
     except Exception as e:
         print("Error has occured. " + str(e))
         sys.exit()
-    return file_name
+    inter_files.append('bin\\' + file_name)
+    return 'bin\\' + file_name
 
 def run_ModifyFRU(file_name, type, serial):
     tool_dir = 'Windows'
@@ -80,31 +60,39 @@ def Write_FRU(ip,username,passwd,bin_file,sn,slot):
     tool_cmd = f'{tool_dir}\ipmitool.exe'
     com = [tool_cmd, '-H', ip, '-U', username, '-P', passwd]
     c1 = copy.deepcopy(com)
-    run_ipmi(c1 + ['raw', '0x30', '0x6', '0x0'], sn)
+    run_ipmi(c1 + ['raw', '0x30', '0x6', '0x0'])
     slot_txt = '0x' + slot.lower()
     run_ipmi(c1 + ['raw', '0x30', '0x33', '0x28', slot_txt, '0'])
     run_ipmi(c1 + ['fru', 'write', slot_map[slot], bin_file])
-    run_ipmi(c1 + ['raw', '0x30', '0x6', '0x1'], sn)
+    run_ipmi(c1 + ['raw', '0x30', '0x6', '0x1'])
     run_ipmi(c1 + ['raw', '0x30', '0x33', '0x28', slot_txt, '1'])
+    #print(c1)
+    #print(slot_map[slot])
     run_ipmi(c1 + ['fru', 'print', slot_map[slot]])
-def run_ipmi(com,sn):
+def run_ipmi(com):
+
     try:
-        output = subprocess.run(com, stdout=subprocess.PIPE)
+        output = subprocess.run(com, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # os.system(cmd)
     except Exception as e:
         print("Error has occured in updating FRU. " + str(e))
         sys.exit()
-
+    #print(output)
 def main():
-    sn = 'S196050X9A25291'
-    model = 'XEM_002'
+    #sn = 'S196050X9A25291'
+    #model = 'XEM_002'
+    sn = 'S308088X9A04247'
+    model = '25G_100'
     ip = '192.168.100.110'
     Username = 'ADMIN'
     Passwd = 'ADMIN'
+    #slot = 'A2'
     slot = 'A1'
     bin_file = create_new_bin(model, sn)
     Write_FRU(ip, Username, Passwd, bin_file,sn,slot)
-
+    for bin in inter_files:
+        cmd = 'del ' + bin
+        os.system(cmd)
     print("{} successfully updated".format(sn))
 
 if __name__ == '__main__':
