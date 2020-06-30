@@ -60,6 +60,8 @@ def Write_FRU(ip,username,passwd,bin_file,sn,slot):
     tool_cmd = f'{tool_dir}\ipmitool.exe'
     com = [tool_cmd, '-H', ip, '-U', username, '-P', passwd]
     c1 = copy.deepcopy(com)
+
+
     run_ipmi(c1 + ['raw', '0x30', '0x6', '0x0'])
     slot_txt = '0x' + slot.lower()
     run_ipmi(c1 + ['raw', '0x30', '0x33', '0x28', slot_txt, '0'])
@@ -69,6 +71,18 @@ def Write_FRU(ip,username,passwd,bin_file,sn,slot):
     #print(c1)
     #print(slot_map[slot])
     run_ipmi(c1 + ['fru', 'print', slot_map[slot]])
+def Get_serial(com, slot):
+    com = com + ['fru', 'print', slot]
+    output = subprocess.run(com, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    board_number = ''
+    product_number = ''
+    if output.returncode == 0:
+        out_txt = output.stdout.decode("utf-8", errors='ignore')
+        result = re.search(r'Board\s+Serial\s+\:(.*?)$', out_txt)
+        board_number = result.group(1).rstrip().lstrip()
+        result = re.search(r'Product\s+Serial\s+\:(.*?)$', out_txt)
+        product_number = result.group(1).rstrip().lstrip()
+    return (board_number, product_number)
 def run_ipmi(com):
 
     try:
