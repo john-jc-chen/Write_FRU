@@ -28,7 +28,10 @@ def create_new_bin(model, sn):
     file_name= sn + '.bin'
     try:
         #subprocess.call(['ren', new_bin, file_name])
-        os.system('ren {} {}'.format(new_bin, file_name))
+        if sys.platform.lower() == 'win32':
+            os.system('ren {} {}'.format(new_bin, file_name))
+        else:
+            os.system('rn {} {}'.format(new_bin, file_name))
     except Exception as e:
         print("Error has occurred. " + str(e))
         sys.exit()
@@ -146,13 +149,18 @@ def Write_device(ip, Username, Passwd, slot, model, sn):
         bin_file = create_new_bin(model, sn)
         Write_FRU(ip, Username, Passwd, bin_file,sn,slot)
         for bin in inter_files:
-            cmd = 'del ' + bin
+            if sys.platform.lower() == 'win32':
+                cmd = 'del ' + bin
+            else:
+                cmd = 'rm ' + bin
             os.system(cmd)
         print("Updated FRU on {} successfully\n".format(sn))
 
 def check_connectivity(ip):
-    res = subprocess.run(['ping','-n','3', ip], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
+    if sys.platform.lower() == 'win32':
+        res = subprocess.run(['ping','-n','3', ip], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    else:
+        res = subprocess.run(['ping', '-c', '3', ip], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if res.returncode  != 0:
         return False
     else:
