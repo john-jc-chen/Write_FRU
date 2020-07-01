@@ -1,0 +1,40 @@
+#CMM information. Please Enter CMM IP, User name and password
+CMM1 IP:172.31.51.91
+CMM1 User Name:ADMIN
+CMM1 Password:ADMIN
+
+#For 3U chassis, on the chassis the location map is
+   CMM1    A1  A2
+
+#For 4U chassis, on the chassis the location is
+   A1  CMM1    A2
+
+#For 8U chassis, on the chassis the location is
+   A1  CMM1    A2
+   B1  CMM2    B2
+#Please enter product serial number in the corresponding location and also indicate the model of the device.
+#For Example: A1:S123456789
+#             Model:MBM-XEM-002
+#Leave blank if there is no device at the location
+#Leave blank if you don't want to update FRU at that location
+#Enter CMM1 product serial number if you want to update CMM1 FRU information. Otherwise, leave it blank.
+
+A1:S308088X9A04247
+A1 Model(MBM-XEM-002, or MBM-XEM-100):MBM-XEM-100
+
+A2:
+A2 Model(MBM-XEM-002, or MBM-XEM-100):
+
+B1:
+B1 Model(MBM-XEM-002, or MBM-XEM-100):
+
+B2:
+B2 Model(MBM-XEM-002, or MBM-XEM-100):
+
+CMM1:
+
+#If there are two CMM in the chassis and you want to update FRU on CMM2, Please enter the information. Otherwise, leave it blank.
+CMM2 IP:
+CMM2 User Name:
+CMM2 Password:
+CMM2 Product serial number:
