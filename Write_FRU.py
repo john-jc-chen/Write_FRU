@@ -14,7 +14,10 @@ bins = {'MBM-XEM-002':'FRU_MBM_XEM_002_V201_6.bin', 'CMM':'', 'MBM-XEM-100':'FRU
 inter_files = []
 
 def create_new_bin(model, sn):
-    bin = 'bin\\'+ bins[model]
+    if sys.platform.lower() == 'win32':
+        bin = 'bin\\'+ bins[model]
+    else:
+        bin = 'bin/' + bins[model]
     map = serial_Maps[model]
     bn = map[sn]
 
@@ -27,14 +30,18 @@ def create_new_bin(model, sn):
         #subprocess.call(['ren', new_bin, file_name])
         os.system('ren {} {}'.format(new_bin, file_name))
     except Exception as e:
-        print("Error has occured. " + str(e))
+        print("Error has occurred. " + str(e))
         sys.exit()
     inter_files.append('bin\\' + file_name)
     return 'bin\\' + file_name
 
 def run_ModifyFRU(file_name, type, serial):
-    tool_dir = 'Windows'
-    tool_cmd = f'{tool_dir}\ModifyFRU'
+    if sys.platform.lower() == 'win32':
+        tool_dir = 'Windows'
+        tool_cmd = f'{tool_dir}\ModifyFRU'
+    else:
+        tool_dir = 'Linux'
+        tool_cmd = f'{tool_dir}/ModifyFRU'
     if type == 'bs':
         type = '--bs'
     if type == 'ps':
@@ -49,7 +56,10 @@ def run_ModifyFRU(file_name, type, serial):
    # print(output)
     if output.returncode == 0:
         out_txt = output.stdout.decode("utf-8", errors='ignore')
-        result = re.search(r'(bin\\.*?)$', out_txt)
+        if sys.platform.lower() == 'win32':
+            result = re.search(r'(bin\\.*?)$', out_txt)
+        else:
+            result = re.search(r'(bin/.*?)$', out_txt)
         return result.group(1).rstrip()
     else:
         print("Error has occured in create bin with serial {}. ".format(serial))
@@ -58,8 +68,11 @@ def run_ModifyFRU(file_name, type, serial):
 
 def Write_FRU(ip,username,passwd,bin_file,sn,slot):
     slot_map = {'CMM1':'1' ,'A1':'3', 'A2':'4', 'B1':'5', 'B2':'6', 'CMM2':'18'}
-    tool_dir = 'tool'
-    tool_cmd = f'{tool_dir}\ipmitool.exe'
+    if sys.platform.lower() == 'win32':
+        tool_dir = 'tool'
+        tool_cmd = f'{tool_dir}\ipmitool.exe'
+    else:
+        tool_cmd = 'ipmitool'
     com = [tool_cmd, '-H', ip, '-U', username, '-P', passwd]
     c1 = copy.deepcopy(com)
 
@@ -103,29 +116,33 @@ def run_ipmi(com):
         output = subprocess.run(com, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # os.system(cmd)
     except Exception as e:
-        print("Error has occured in updating FRU. " + str(e))
+        print("Error has occurred in updating FRU. " + str(e))
         sys.exit()
     #print(output)
 def Write_device(ip, Username, Passwd, slot, model, sn):
     #sn = 'S196050X9A25291'
     #model = 'XEM_002'
 
-    sn = 'S308088X9A04247'
-    model = 'MBM-XEM-100'
-    ip = '172.31.51.91'
-    Username = 'ADMIN'
-    Passwd = 'ADMIN'
+    # sn = 'S308088X9A04247'
+    # model = 'MBM-XEM-100'
+    # ip = '172.31.51.91'
+    # Username = 'ADMIN'
+    # Passwd = 'ADMIN'
     #slot = 'A2'
     slot = 'A1'
     slot_map = {'CMM1': '1', 'A1': '3', 'A2': '4', 'B1': '5', 'B2': '6', 'CMM2': '18'}
-    tool_dir = 'tool'
-    tool_cmd = f'{tool_dir}\ipmitool.exe'
+    if sys.platform.lower() == 'win32':
+        tool_dir = 'tool'
+        tool_cmd = f'{tool_dir}\ipmitool.exe'
+    else:
+        tool_cmd = 'ipmitool'
     com = [tool_cmd, '-H', ip, '-U', Username, '-P', Passwd]
 
     (board_serial, product_serial) = get_serial(com, slot_map[slot])
-    if board_serial or product_serial:
-        print("There is Board Serial or Product Serial in the FRU. Skip programming serial numbers on this device {}.\n Please check the information via Web GUI".format(sn))
+    if board_serial and product_serial:
+        print("There is Board Serial and Product Serial on the device. Skip programming serial numbers on this device {}.\n Please check the information via Web GUI".format(sn))
     else:
+
         bin_file = create_new_bin(model, sn)
         Write_FRU(ip, Username, Passwd, bin_file,sn,slot)
         for bin in inter_files:
@@ -133,11 +150,24 @@ def Write_device(ip, Username, Passwd, slot, model, sn):
             os.system(cmd)
         print("Updated FRU on {} successfully\n".format(sn))
 
+def check_connectivity(ip):
+    res = subprocess.run(['ping', ip], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    if res.returncode  != 0:
+        return False
+    else:
+        out_text = res.stdout.decode("utf-8", errors='ignore')
+        #print(out_text)
+        if 'Destination host unreachable' in out_text:
+            return False
+        else:
+            return True
+
 def main():
 
     data = {}
     try:
-        with open('config.txt', 'r') as file:
+        with open('SW_config.txt', 'r') as file:
             for line in file:
                 result = re.match(r'^(\w+.*?)\:(.*?)$', line)
                 if result:
@@ -151,22 +181,27 @@ def main():
         sys.exit()
     #print(data)
 
-    if 'CMM1 IP' in data.keys:
-        ip =  data['CMM1 IP']
+
+    if 'CMM IP' in data.keys():
+        ip = data['CMM IP']
     else:
-        print("CMM1 IP is missing. Leave program!")
+        print("CMM IP is missing. Leave program!")
         sys.exit()
 
-    if 'CMM1 User Name' in data.keys:
-        username =  data['CMM1 User Name']
+    if 'CMM User Name' in data.keys():
+        username =  data['CMM User Name']
     else:
-        print("CMM1 user name is missing. Leave program!")
+        print("CMM user name is missing. Leave program!")
         sys.exit()
 
-    if 'CMM1 Password' in data.keys:
-        password = data['CMM1 Password']
+    if 'CMM Password' in data.keys():
+        password = data['CMM Password']
     else:
-        print("CMM1 Password is missing. Leave program!")
+        print("CMM Password is missing. Leave program!")
+        sys.exit()
+
+    if not check_connectivity(ip):
+        print("Failed to access to {}. Leave program!!".format(ip))
         sys.exit()
 
     devices = []
@@ -190,33 +225,12 @@ def main():
             devices.append("B2\t{}\t{}".format(data['B2'], data['B2 Model']))
         else:
             print("B2 Model is missing. Skip programming FRU on B2")
-    if 'CMM1 Product Serial Number' in data.keys():
-        devices.append("CMM1\t{}\tCMM".format(data['CMM1']))
 
     for dev in devices:
-        (slot, model, sn) = re.split(r'\t', dev)
+        (slot,sn, model) = re.split(r'\t', dev)
         print("Programming FRU on {}".format(sn))
         Write_device(ip, username, password, slot, model, sn)
 
-    if 'CMM2 IP' in data.keys:
-        ip = data['CMM2 IP']
-        if 'CMM2 User Name' in data.keys:
-            username = data['CMM2 User Name']
-        else:
-            print("CMM2 user name is missing. Leave program!")
-            sys.exit()
-
-        if 'CMM2 Password' in data.keys:
-            password = data['CMM2 Password']
-        else:
-            print("CMM2 Password is missing. Leave program!")
-            sys.exit()
-
-        if 'CMM2 Product Serial Number' in data.keys():
-            Write_device(ip, username, password, 'CMM2', 'CMM', data['CMM2 Product Serial Number'])
-        else:
-            print("CMM2 Product Serial Number is missing. Leave program!")
-            sys.exit()
 
 if __name__ == '__main__':
     main()
