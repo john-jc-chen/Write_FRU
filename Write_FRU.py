@@ -151,7 +151,7 @@ def Write_device(ip, Username, Passwd, slot, model, sn):
         print("Updated FRU on {} successfully\n".format(sn))
 
 def check_connectivity(ip):
-    res = subprocess.run(['ping', ip], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    res = subprocess.run(['ping','-n','3', ip], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     if res.returncode  != 0:
         return False
