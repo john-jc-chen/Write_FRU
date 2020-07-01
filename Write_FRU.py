@@ -151,20 +151,20 @@ def main():
         sys.exit()
     #print(data)
 
-    if data['CMM1 IP']:
+    if 'CMM1 IP' in data.keys:
         ip =  data['CMM1 IP']
     else:
         print("CMM1 IP is missing. Leave program!")
         sys.exit()
 
-    if data['CMM1 User Name']:
+    if 'CMM1 User Name' in data.keys:
         username =  data['CMM1 User Name']
     else:
         print("CMM1 user name is missing. Leave program!")
         sys.exit()
 
-    if data['CMM1 Password']:
-        password =  data['CMM1 Password']
+    if 'CMM1 Password' in data.keys:
+        password = data['CMM1 Password']
     else:
         print("CMM1 Password is missing. Leave program!")
         sys.exit()
@@ -180,13 +180,43 @@ def main():
             devices.append("A2\t{}\t{}".format(data['A2'], data['A2 Model']))
         else:
             print("A2 Model is missing. Skip programming FRU on A2")
-    if 'CMM1' in data.keys():
-        pass
+    if 'B1' in data.keys():
+        if data['B1 Model'] and data['B1 Model'] != '':
+            devices.append("B1\t{}\t{}".format(data['B1'], data['B1 Model']))
+        else:
+            print("B1 Model is missing. Skip programming FRU on B1")
+    if 'B2' in data.keys():
+        if data['B2 Model'] and data['B2 Model'] != '':
+            devices.append("B2\t{}\t{}".format(data['B2'], data['B2 Model']))
+        else:
+            print("B2 Model is missing. Skip programming FRU on B2")
+    if 'CMM1 Product Serial Number' in data.keys():
+        devices.append("CMM1\t{}\tCMM".format(data['CMM1']))
 
     for dev in devices:
         (slot, model, sn) = re.split(r'\t', dev)
         print("Programming FRU on {}".format(sn))
         Write_device(ip, username, password, slot, model, sn)
+
+    if 'CMM2 IP' in data.keys:
+        ip = data['CMM2 IP']
+        if 'CMM2 User Name' in data.keys:
+            username = data['CMM2 User Name']
+        else:
+            print("CMM2 user name is missing. Leave program!")
+            sys.exit()
+
+        if 'CMM2 Password' in data.keys:
+            password = data['CMM2 Password']
+        else:
+            print("CMM2 Password is missing. Leave program!")
+            sys.exit()
+
+        if 'CMM2 Product Serial Number' in data.keys():
+            Write_device(ip, username, password, 'CMM2', 'CMM', data['CMM2 Product Serial Number'])
+        else:
+            print("CMM2 Product Serial Number is missing. Leave program!")
+            sys.exit()
 
 if __name__ == '__main__':
     main()
