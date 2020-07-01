@@ -17,7 +17,7 @@ def create_new_bin(model, sn):
     if sys.platform.lower() == 'win32':
         bin = 'bin\\'+ bins[model]
     else:
-        bin = 'bin/' + bins[model]
+        bin = 'bin/{}'.format(bins[model])
     map = serial_Maps[model]
     bn = map[sn]
 
@@ -25,18 +25,28 @@ def create_new_bin(model, sn):
     #print(new_bin)
     inter_files.append(new_bin)
     new_bin = run_ModifyFRU(new_bin, 'ps', sn)
-    file_name= sn + '.bin'
+    if sys.platform.lower() == 'win32':
+        file_name= sn + '.bin'
+    else:
+        file_name= "bin/{}.bin".format(sn)
+    #print(new_bin)
     try:
         #subprocess.call(['ren', new_bin, file_name])
         if sys.platform.lower() == 'win32':
             os.system('ren {} {}'.format(new_bin, file_name))
         else:
-            os.system('rn {} {}'.format(new_bin, file_name))
+            os.system('mv {} {}'.format(new_bin, file_name))
     except Exception as e:
         print("Error has occurred. " + str(e))
         sys.exit()
-    inter_files.append('bin\\' + file_name)
-    return 'bin\\' + file_name
+
+
+    if sys.platform.lower() == 'win32':
+        inter_files.append('bin\\' + file_name)
+        return 'bin\\' + file_name
+    else:
+        inter_files.append(file_name)
+        return '{}'.format(file_name)
 
 def run_ModifyFRU(file_name, type, serial):
     if sys.platform.lower() == 'win32':
@@ -56,14 +66,15 @@ def run_ModifyFRU(file_name, type, serial):
     except Exception as e:
         print("Error has occured in create bin with serial {}. ".format(serial) + str(e))
         sys.exit()
-   # print(output)
+    #print(output)
     if output.returncode == 0:
         out_txt = output.stdout.decode("utf-8", errors='ignore')
         if sys.platform.lower() == 'win32':
             result = re.search(r'(bin\\.*?)$', out_txt)
+            return result.group(1).rstrip()
         else:
-            result = re.search(r'(bin/.*?)$', out_txt)
-        return result.group(1).rstrip()
+            return "{}.new.{}".format(file_name, serial)
+
     else:
         print("Error has occured in create bin with serial {}. ".format(serial))
         #print("Error has occured in create bin with serial {}. ".format(serial) + output.stdout.decode("utf-8", errors='ignore'))
