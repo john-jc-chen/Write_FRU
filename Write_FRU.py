@@ -9,8 +9,8 @@ import copy
 import logging
 
 logging.basicConfig(format='%(asctime)s : %(message)s', level=logging.INFO , filename='Write_FRU.log')
-serial_Maps = {'MBM-XEM-002':{'S196050X9A25291':'VD197S001463'},'MBM-XEM-100':{'S308088X9A04247':'OD198S039395'},'CMM':{}}
-bins = {'MBM-XEM-002':'FRU_MBM_XEM_002_V201_6.bin', 'CMM':'', 'MBM-XEM-100':'FRU_MBM_XEM_100_V101_6.bin'}
+serial_Maps = {'MBM-XEM-002':{'S218042X8821924':'VD185S003732'},'MBM-XEM-100':{'S308088X0116444':'OD19S020072'},'CMM':{'S15317609627055':'VD191S0000329'}}
+bins = {'MBM-XEM-002':'FRU_MBM_XEM_002_V201_6.bin', 'CMM':'FRU_MBM_CMM_FIO_V100_6.bin', 'MBM-XEM-100':'FRU_MBM_XEM_100_V101_6.bin'}
 inter_files = []
 
 def create_new_bin(model, sn):
