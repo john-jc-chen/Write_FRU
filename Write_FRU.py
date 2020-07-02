@@ -9,8 +9,8 @@ import copy
 import logging
 
 logging.basicConfig(format='%(asctime)s : %(message)s', level=logging.INFO , filename='Write_FRU.log')
-serial_Maps = {'MBM-XEM-002':{'S218042X8821924':'VD185S003732'},'MBM-XEM-100':{'S308088X0116444':'OD19S020072'},'CMM':{'S15317609627055':'VD191S0000329'}}
-bins = {'MBM-XEM-002':'FRU_MBM_XEM_002_V201_6.bin', 'CMM':'FRU_MBM_CMM_FIO_V100_6.bin', 'MBM-XEM-100':'FRU_MBM_XEM_100_V101_6.bin'}
+serial_Maps = {'MBM-XEM-002':{'S15317609627055':'VD191S000329'},'MBM-XEM-100':{'S308088X0116444':'OD19S020072'},'CMM-001':{'S15317609627055':'VD191S0000329'}}
+bins = {'MBM-XEM-002':'FRU_MBM_XEM_002_V201_6.bin', 'CMM-001':'FRU_MBM_CMM_001_V102_2.bin', 'CMM-003':'FRU_MBM_CMM_FIO_V100_6.bin', 'MBM-XEM-100':'FRU_MBM_XEM_100_V101_6.bin'}
 inter_files = []
 
 def create_new_bin(model, sn):
@@ -18,9 +18,19 @@ def create_new_bin(model, sn):
         bin = 'bin\\'+ bins[model]
     else:
         bin = 'bin/{}'.format(bins[model])
-    map = serial_Maps[model]
-    bn = map[sn]
-
+    if model not in serial_Maps.keys():
+        print("Error Model name. Skip programming!!")
+        logging.error("Error Model name. Skip programming!!")
+        return None
+    else:
+        map = serial_Maps[model]
+    if sn not in map.keys():
+        print("Can not find this serial number {} in database. Skip programming!!".format(sn))
+        logging.error("Can not find this serial number {} in database. Skip programming!!".format(sn))
+        return None
+    else:
+        bn = map[sn]
+    new_bin = ""
     new_bin = run_ModifyFRU(bin, 'bs', bn)
     #print(new_bin)
     inter_files.append(new_bin)
@@ -104,11 +114,14 @@ def Write_FRU(ip,username,passwd,bin_file,sn,slot):
     (board_serial, product_serial) = get_serial(com, slot_map[slot])
     if product_serial == sn:
         if not board_serial:
-            print("Failed to write Board Serial on {}".format(sn))
-            logging.warning("Failed to write Board Serial on {}".format(sn))
+            print("Board serial mismatch. Failed to write Board Serial on {}".format(sn))
+            logging.warning("Board serial mismatch. Failed to write Board Serial on {}".format(sn))
+        else:
+            print("Updated FRU on {} successfully\n".format(sn))
+            logging.info("Updated FRU on {} successfully.".format(sn))
     else:
-        print("Failed to write Product Serial on {}".format(sn))
-        logging.warning("Failed to write Product Serial on {}".format(sn))
+        print("Product serial mismatch. Failed to write Product Serial on {}".format(sn))
+        logging.warning("Product serial mismatch. Failed to write Product Serial on {}".format(sn))
 
 
 def get_serial(com, slot):
@@ -137,7 +150,6 @@ def run_ipmi(com):
         sys.exit()
     #print(output)
 def Write_device(ip, Username, Passwd, slot, model, sn):
-    slot = 'A1'
     slot_map = {'CMM1': '1', 'A1': '3', 'A2': '4', 'B1': '5', 'B2': '6', 'CMM2': '18'}
     if sys.platform.lower() == 'win32':
         tool_dir = 'tool'
@@ -145,23 +157,25 @@ def Write_device(ip, Username, Passwd, slot, model, sn):
     else:
         tool_cmd = 'ipmitool'
     com = [tool_cmd, '-H', ip, '-U', Username, '-P', Passwd]
-
+    board_serial = ''
+    product_serial = ''
     (board_serial, product_serial) = get_serial(com, slot_map[slot])
+    #print(board_serial, product_serial, slot)
     if board_serial and product_serial:
         print("There is Board Serial and Product Serial on the device. Skip programming serial numbers on this device {}.\n Please check the information via Web GUI".format(sn))
         logging.warning("There is Board Serial and Product Serial on the device. Skip programming serial numbers on this device {}.\n Please check the information via Web GUI".format(sn))
     else:
-
         bin_file = create_new_bin(model, sn)
+        if not bin_file:
+            return
         Write_FRU(ip, Username, Passwd, bin_file,sn,slot)
-        for bin in inter_files:
+        while inter_files:
+            bin = inter_files.pop()
             if sys.platform.lower() == 'win32':
                 cmd = 'del ' + bin
             else:
                 cmd = 'rm ' + bin
             os.system(cmd)
-        print("Updated FRU on {} successfully\n".format(sn))
-        logging.info("Updated FRU on {} successfully.".format(sn))
 
 def check_connectivity(ip):
     if sys.platform.lower() == 'win32':
@@ -244,11 +258,11 @@ def main():
         else:
             print("B2 Model is missing. Skip programming FRU on B2")
             logging.warning("B2 Model is missing. Skip programming FRU on B2")
-
+    #print(devices)
     for dev in devices:
         (slot,sn, model) = re.split(r'\t', dev)
-        print("Programming FRU on {}".format(sn))
-        logging.info("Programming FRU on {}".format(sn))
+        print("Programming FRU on {} in {}".format(sn,slot))
+        logging.info("Programming FRU on {} in {}".format(sn,slot))
         Write_device(ip, username, password, slot, model, sn)
 
 
