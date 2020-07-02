@@ -8,7 +8,7 @@ import time
 import copy
 import logging
 
-
+logging.basicConfig(format='%(asctime)s : %(message)s', level=logging.INFO , filename='Write_FRU.log')
 serial_Maps = {'MBM-XEM-002':{'S196050X9A25291':'VD197S001463'},'MBM-XEM-100':{'S308088X9A04247':'OD198S039395'},'CMM':{}}
 bins = {'MBM-XEM-002':'FRU_MBM_XEM_002_V201_6.bin', 'CMM':'', 'MBM-XEM-100':'FRU_MBM_XEM_100_V101_6.bin'}
 inter_files = []
@@ -25,21 +25,24 @@ def create_new_bin(model, sn):
     #print(new_bin)
     inter_files.append(new_bin)
     new_bin = run_ModifyFRU(new_bin, 'ps', sn)
+
     if sys.platform.lower() == 'win32':
         file_name= sn + '.bin'
     else:
         file_name= "bin/{}.bin".format(sn)
     #print(new_bin)
-    try:
-        #subprocess.call(['ren', new_bin, file_name])
-        if sys.platform.lower() == 'win32':
-            os.system('ren {} {}'.format(new_bin, file_name))
-        else:
-            os.system('mv {} {}'.format(new_bin, file_name))
-    except Exception as e:
-        print("Error has occurred. " + str(e))
-        sys.exit()
 
+    if not path.isfile(file_name):
+        try:
+            #subprocess.call(['ren', new_bin, file_name])
+            if sys.platform.lower() == 'win32':
+                os.system('ren {} {}'.format(new_bin, file_name))
+            else:
+                os.system('mv {} {}'.format(new_bin, file_name))
+        except Exception as e:
+            print("Error has occurred. eave program!!" + str(e))
+            logging.error("Failed to rename this file {}. In create_new_bin.".format(new_bin) + str(e))
+            sys.exit()
 
     if sys.platform.lower() == 'win32':
         inter_files.append('bin\\' + file_name)
@@ -59,12 +62,13 @@ def run_ModifyFRU(file_name, type, serial):
         type = '--bs'
     if type == 'ps':
         type = '--ps'
-    #print('tool_cmd: {} serial:{} type:{} file_name:{}'.format(tool_cmd, serial, type, file_name))
+
     try:
         output = subprocess.run([tool_cmd, '-f', file_name, type, serial], stdout=subprocess.PIPE)
         # os.system(cmd)
     except Exception as e:
-        print("Error has occured in create bin with serial {}. ".format(serial) + str(e))
+        print("Error has occurred in create bin with serial {}. Leave program!!".format(serial) + str(e))
+        logging.error("Error has occurred in run_ModifyFRU with serial {}. ".format(serial) + str(e))
         sys.exit()
     #print(output)
     if output.returncode == 0:
@@ -74,10 +78,9 @@ def run_ModifyFRU(file_name, type, serial):
             return result.group(1).rstrip()
         else:
             return "{}.new.{}".format(file_name, serial)
-
     else:
-        print("Error has occured in create bin with serial {}. ".format(serial))
-        #print("Error has occured in create bin with serial {}. ".format(serial) + output.stdout.decode("utf-8", errors='ignore'))
+        print("Error has occurred in create bin with serial {}. Leave program!!".format(serial))
+        logging.error("Error has occurred in run_ModifyFRU with serial {}. ".format(serial) + output.stderr.decode("utf-8", errors='ignore'))
         sys.exit()
 
 def Write_FRU(ip,username,passwd,bin_file,sn,slot):
@@ -102,10 +105,10 @@ def Write_FRU(ip,username,passwd,bin_file,sn,slot):
     if product_serial == sn:
         if not board_serial:
             print("Failed to write Board Serial on {}".format(sn))
-        # else:
-        #     print("Board Serial and Product Serial are programmed on {}".format(sn))
+            logging.warning("Failed to write Board Serial on {}".format(sn))
     else:
         print("Failed to write Product Serial on {}".format(sn))
+        logging.warning("Failed to write Product Serial on {}".format(sn))
 
 
 def get_serial(com, slot):
@@ -113,7 +116,7 @@ def get_serial(com, slot):
     output = subprocess.run(com, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     board_number = None
     product_number = None
-    #print("out_txt {}".format(output))
+
     if output.returncode == 0:
         out_txt = output.stdout.decode("utf-8", errors='ignore')
         result = re.search(r'Board\s+Serial\s+\:\s?(\w+)', out_txt)
@@ -134,15 +137,6 @@ def run_ipmi(com):
         sys.exit()
     #print(output)
 def Write_device(ip, Username, Passwd, slot, model, sn):
-    #sn = 'S196050X9A25291'
-    #model = 'XEM_002'
-
-    # sn = 'S308088X9A04247'
-    # model = 'MBM-XEM-100'
-    # ip = '172.31.51.91'
-    # Username = 'ADMIN'
-    # Passwd = 'ADMIN'
-    #slot = 'A2'
     slot = 'A1'
     slot_map = {'CMM1': '1', 'A1': '3', 'A2': '4', 'B1': '5', 'B2': '6', 'CMM2': '18'}
     if sys.platform.lower() == 'win32':
@@ -155,6 +149,7 @@ def Write_device(ip, Username, Passwd, slot, model, sn):
     (board_serial, product_serial) = get_serial(com, slot_map[slot])
     if board_serial and product_serial:
         print("There is Board Serial and Product Serial on the device. Skip programming serial numbers on this device {}.\n Please check the information via Web GUI".format(sn))
+        logging.warning("There is Board Serial and Product Serial on the device. Skip programming serial numbers on this device {}.\n Please check the information via Web GUI".format(sn))
     else:
 
         bin_file = create_new_bin(model, sn)
@@ -166,6 +161,7 @@ def Write_device(ip, Username, Passwd, slot, model, sn):
                 cmd = 'rm ' + bin
             os.system(cmd)
         print("Updated FRU on {} successfully\n".format(sn))
+        logging.info("Updated FRU on {} successfully.".format(sn))
 
 def check_connectivity(ip):
     if sys.platform.lower() == 'win32':
@@ -183,7 +179,6 @@ def check_connectivity(ip):
             return True
 
 def main():
-
     data = {}
     try:
         with open('SW_config.txt', 'r') as file:
@@ -197,6 +192,7 @@ def main():
                         data[field] = value
     except IOError as e:
         print("config file is not available. Please read readme file and run this program again. Leave program!")
+        logging.error("config file is not available.")
         sys.exit()
     #print(data)
 
@@ -229,25 +225,30 @@ def main():
             devices.append("A1\t{}\t{}".format(data['A1'], data['A1 Model']))
         else:
             print("A1 Model is missing. Skip programming FRU on A1")
+            logging.warning("A1 Model is missing. Skip programming FRU on A1")
     if 'A2' in data.keys():
         if data['A2 Model'] and data['A2 Model'] != '':
             devices.append("A2\t{}\t{}".format(data['A2'], data['A2 Model']))
         else:
             print("A2 Model is missing. Skip programming FRU on A2")
+            logging.warning("A2 Model is missing. Skip programming FRU on A2")
     if 'B1' in data.keys():
         if data['B1 Model'] and data['B1 Model'] != '':
             devices.append("B1\t{}\t{}".format(data['B1'], data['B1 Model']))
         else:
             print("B1 Model is missing. Skip programming FRU on B1")
+            logging.warning("B1 Model is missing. Skip programming FRU on B1")
     if 'B2' in data.keys():
         if data['B2 Model'] and data['B2 Model'] != '':
             devices.append("B2\t{}\t{}".format(data['B2'], data['B2 Model']))
         else:
             print("B2 Model is missing. Skip programming FRU on B2")
+            logging.warning("B2 Model is missing. Skip programming FRU on B2")
 
     for dev in devices:
         (slot,sn, model) = re.split(r'\t', dev)
         print("Programming FRU on {}".format(sn))
+        logging.info("Programming FRU on {}".format(sn))
         Write_device(ip, username, password, slot, model, sn)
 
 
