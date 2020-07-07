@@ -94,7 +94,7 @@ def run_ModifyFRU(file_name, type, serial):
         sys.exit()
 
 def Write_FRU(ip,username,passwd,bin_file,sn,slot):
-    slot_map = {'CMM1':'1' ,'A1':'3', 'A2':'4', 'B1':'5', 'B2':'6', 'CMM2':'18'}
+    slot_map = {'CMM':'1' ,'A1':'3', 'A2':'4', 'B1':'5', 'B2':'6', 'CMM2':'18'}
     if sys.platform.lower() == 'win32':
         tool_dir = 'tool'
         tool_cmd = f'{tool_dir}\ipmitool.exe'
@@ -104,12 +104,12 @@ def Write_FRU(ip,username,passwd,bin_file,sn,slot):
     c1 = copy.deepcopy(com)
 
     run_ipmi(c1 + ['raw', '0x30', '0x6', '0x0'])
-    if slot != 'CMM1' and slot != 'CMM2':
+    if slot != 'CMM' and slot != 'CMM2':
         slot_txt = '0x' + slot.lower()
         run_ipmi(c1 + ['raw', '0x30', '0x33', '0x28', slot_txt, '0'])
     run_ipmi(c1 + ['fru', 'write', slot_map[slot], bin_file])
     run_ipmi(c1 + ['raw', '0x30', '0x6', '0x1'])
-    if slot != 'CMM1' and slot != 'CMM2':
+    if slot != 'CMM' and slot != 'CMM2':
         run_ipmi(c1 + ['raw', '0x30', '0x33', '0x28', slot_txt, '1'])
     (board_serial, product_serial) = get_serial(com, slot_map[slot])
     if product_serial == sn:
@@ -138,6 +138,10 @@ def get_serial(com, slot):
         result = re.search(r'Product\s+Serial\s+\:\s?(\w+)', out_txt)
         if result:
             product_number = result.group(1).rstrip().lstrip()
+    else:
+        print("Failed to login to CMM. Please check your user name and password")
+        logging.error("Failed to login to CMM. Please check your user name and password")
+        sys.exit()
     #print("{} bs {} ps {}".format(out_txt, board_number, product_number))
     return (board_number, product_number)
 def run_ipmi(com):
@@ -150,7 +154,7 @@ def run_ipmi(com):
         sys.exit()
     #print(output)
 def Write_device(ip, Username, Passwd, slot, model, sn):
-    slot_map = {'CMM1': '1', 'A1': '3', 'A2': '4', 'B1': '5', 'B2': '6', 'CMM2': '18'}
+    slot_map = {'CMM': '1', 'A1': '3', 'A2': '4', 'B1': '5', 'B2': '6', 'CMM2': '18'}
     if sys.platform.lower() == 'win32':
         tool_dir = 'tool'
         tool_cmd = f'{tool_dir}\ipmitool.exe'
@@ -160,6 +164,15 @@ def Write_device(ip, Username, Passwd, slot, model, sn):
     board_serial = ''
     product_serial = ''
     (board_serial, product_serial) = get_serial(com, slot_map[slot])
+    if slot == 'CMM':
+        if re.search(r'^0+$', board_serial):
+            board_serial = ''
+        if re.search(r'^0+$', product_serial):
+            product_serial = ''
+        # if int(board_serial) == 0:
+        #     board_serial = ''
+        # if int(product_serial) == 0:
+        #     product_serial = ''
     #print(board_serial, product_serial, slot)
     if board_serial and product_serial:
         print("There is Board Serial and Product Serial on the device. Skip programming serial numbers on this device {}.\n Please check the information via Web GUI".format(sn))
@@ -195,7 +208,8 @@ def check_connectivity(ip):
 def main():
     data = {}
     try:
-        with open('SW_config.txt', 'r') as file:
+        #with open('SW_config.txt', 'r') as file:
+        with open(sys.argv[1], 'r') as file:
             for line in file:
                 result = re.match(r'^(\w+.*?)\:(.*?)$', line)
                 if result:
@@ -246,18 +260,24 @@ def main():
         else:
             print("A2 Model is missing. Skip programming FRU on A2")
             logging.warning("A2 Model is missing. Skip programming FRU on A2")
-    if 'B1' in data.keys():
-        if data['B1 Model'] and data['B1 Model'] != '':
-            devices.append("B1\t{}\t{}".format(data['B1'], data['B1 Model']))
+    if 'CMM' in data.keys():
+        if data['CMM Model'] and data['CMM Model'] != '':
+            devices.append("CMM\t{}\t{}".format(data['CMM'], data['CMM Model']))
         else:
-            print("B1 Model is missing. Skip programming FRU on B1")
-            logging.warning("B1 Model is missing. Skip programming FRU on B1")
-    if 'B2' in data.keys():
-        if data['B2 Model'] and data['B2 Model'] != '':
-            devices.append("B2\t{}\t{}".format(data['B2'], data['B2 Model']))
-        else:
-            print("B2 Model is missing. Skip programming FRU on B2")
-            logging.warning("B2 Model is missing. Skip programming FRU on B2")
+            print("CMM Model is missing. Skip programming FRU on CMM")
+            logging.warning("CMM Model is missing. Skip programming FRU on CMM")
+    # if 'B1' in data.keys():
+    #     if data['B1 Model'] and data['B1 Model'] != '':
+    #         devices.append("B1\t{}\t{}".format(data['B1'], data['B1 Model']))
+    #     else:
+    #         print("B1 Model is missing. Skip programming FRU on B1")
+    #         logging.warning("B1 Model is missing. Skip programming FRU on B1")
+    # if 'B2' in data.keys():
+    #     if data['B2 Model'] and data['B2 Model'] != '':
+    #         devices.append("B2\t{}\t{}".format(data['B2'], data['B2 Model']))
+    #     else:
+    #         print("B2 Model is missing. Skip programming FRU on B2")
+    #         logging.warning("B2 Model is missing. Skip programming FRU on B2")
     #print(devices)
     for dev in devices:
         (slot,sn, model) = re.split(r'\t', dev)
