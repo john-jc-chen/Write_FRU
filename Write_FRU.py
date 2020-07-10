@@ -9,7 +9,7 @@ import copy
 from telnetlib import Telnet
 import logging
 
-serial_Maps = {'MBM-XEM-002':{'VD185S003732':'S15317609627055'},'MBM-XEM-100':{'OD199S020072':'S308088X0116444'},'CMM-001':{'VD191S0000329':'S15317609627055'}}
+serial_Maps = {'MBM-XEM-002': {'UD162S000019': 'S218042X6319811', 'UD163S000005': 'S218042X6435688', 'VD181S002248': 'S218042X8207044', 'VD181S002461': 'S218042X8207028', 'VD181S002349': 'S218042X8204578', 'VD181S002348': 'S218042X8204579', 'VD181S002250': 'S218042X8207031', 'VD181S002448': 'S218042X8207032', 'VD181S002316': 'S218042X8207025', 'VD181S002274': 'S218042X8207022', 'VD181S002283': 'S218042X8207029', 'VD189S000270': 'S218042X8A14364', 'VD186S001121': 'S218042X8A14360', 'VD186S001195': 'S218042X8A14358', 'VD186S001123': 'S218042X8A14355', 'VD186S001194': 'S218042X8A14362', 'VD186S001132': 'S218042X8A14361', 'VD186S001242': 'S218042X8921806', 'VD186S001166': 'S218042X8921797', 'VD186S000973': 'S218042X8821873', 'VD185S003803': 'S218042X8821888'}, 'MBM-XEM-100': {'OD188S017988': 'S308088X9310725', 'OD195S023224': 'S308088X9819701', 'OD195S023205': 'S308088X9819695', 'OD19CS016721': 'S308088X0202759', 'OD19CS016764': 'S308088X0202807', 'OD19CS016684': 'S308088X0202761', 'OD19CS016713': 'S308088X0202768', 'OD19CS016736': 'S308088X0202771', 'OD19CS016732': 'S308088X0202775', 'OD19CS016756': 'S308088X0202786', 'OD19CS016751': 'S308088X0202790', 'OD19CS016734': 'S308088X0202800', 'OD19CS016768': 'S308088X0202802', 'OD19CS016690': 'S308088X0202808', 'OD195S023231': 'S308088X9819696', 'OD195S023217': 'S308088X9819712'}}
 bins = {'MBM-XEM-002':'FRU_MBM_XEM_002_V201_6.bin', 'MBM-XEM-100':'FRU_MBM_XEM_100_V101_6.bin'}
 
 inter_files = []
@@ -20,14 +20,14 @@ def create_new_bin(model, bn):
     else:
         bin = 'bin/{}'.format(bins[model])
     if model not in serial_Maps.keys():
-        print("Error Model name. Skip programming!!")
-        logging.error("Error Model name {}. Skip programming!!".format(model))
+        print("ERROR!! Error Model name. Skip programming!!")
+        logging.error("ERROR!! Error Model name {}. Skip programming!!".format(model))
         return None
     else:
         map = serial_Maps[model]
     if bn not in map.keys():
-        print("Can NOT find this switch in database. Please send log file \"Write_FRU.log\" back to Supermicro. Skip programming!!\n".format(bn))
-        logging.error("Can NOT find this serial number {} in database. Skip programming!!".format(bn))
+        print("ERROR!! Can NOT find this switch in database. Please send log file \"Write_FRU.log\" back to Supermicro. Skip programming!!\n".format(bn))
+        logging.error("ERROR!! Can NOT find this serial number {} in database. Skip programming!!".format(bn))
         return None
     else:
         sn = map[bn]
@@ -53,8 +53,8 @@ def create_new_bin(model, bn):
             else:
                 os.system('mv {} {}'.format(new_bin, file_name))
         except Exception as e:
-            print("Error has occurred. Skip programming!!" + str(e))
-            logging.error("Failed to rename this file {}. In create_new_bin. Skip programming!!".format(new_bin) + str(e))
+            print("ERROR!! Error has occurred. Skip programming!!" + str(e))
+            logging.error("ERROR!! Failed to rename this file {}. In create_new_bin. Skip programming!!".format(new_bin) + str(e))
             return None
 
     if sys.platform.lower() == 'win32':
@@ -80,8 +80,8 @@ def run_ModifyFRU(file_name, type, serial):
         output = subprocess.run([tool_cmd, '-f', file_name, type, serial], stdout=subprocess.PIPE)
         # os.system(cmd)
     except Exception as e:
-        print("Error has occurred in create bin with serial {}. Skip programming!!".format(serial) + str(e))
-        logging.error("Error has occurred in run_ModifyFRU with serial {}. Skip programming!!".format(serial) + str(e))
+        print("ERROR!! Error has occurred in create bin with serial {}. Skip programming!!".format(serial) + str(e))
+        logging.error("ERROR!! Error has occurred in run_ModifyFRU with serial {}. Skip programming!!".format(serial) + str(e))
         return None
     #print(output)
     if output.returncode == 0:
@@ -92,8 +92,8 @@ def run_ModifyFRU(file_name, type, serial):
         else:
             return "{}.new.{}".format(file_name, serial)
     else:
-        print("Error has occurred in create bin with serial {}. Skip programming!!".format(serial))
-        logging.error("Error has occurred in run_ModifyFRU with serial {}. Skip programming!!".format(serial) + output.stderr.decode("utf-8", errors='ignore'))
+        print("ERROR!! Error has occurred in create bin with serial {}. Skip programming!!".format(serial))
+        logging.error("ERROR!! Error has occurred in run_ModifyFRU with serial {}. Skip programming!!".format(serial) + output.stderr.decode("utf-8", errors='ignore'))
         return None
 
 def Write_FRU(ip,username,passwd,bin_file,bn,slot):
@@ -142,8 +142,8 @@ def get_serial(com, slot):
         if result:
             product_number = result.group(1).rstrip().lstrip()
     else:
-        print("Failed to login to CMM. Please check your user name and password.\n")
-        logging.error("Failed to login to CMM. Please check your user name and password.")
+        print("ERROR!! Failed to login to CMM. Please check your user name and password. Leave program!\n")
+        logging.error("ERROR!! Failed to login to CMM. Please check your user name and password. Leave program!")
         sys.exit()
     #print("{} bs {} ps {}".format(out_txt, board_number, product_number))
     return (board_number, product_number)
@@ -151,11 +151,10 @@ def run_ipmi(com):
 
     try:
         output = subprocess.run(com, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        # os.system(cmd)
     except Exception as e:
-        print("Error has occurred in updating FRU. " + str(e))
+        print("ERROR!! Error has occurred in updating FRU. Leave program")
+        logging.error("ERROR!! Failed to run ipmitool. Leave Script! " + str(e))
         sys.exit()
-    #print(output)
 def Write_device(ip, Username, Passwd, slot, model, bn):
     slot_map = {'CMM': '1', 'A1': '3', 'A2': '4', 'B1': '5', 'B2': '6', 'CMM2': '18'}
     if sys.platform.lower() == 'win32':
@@ -184,8 +183,8 @@ def Write_device(ip, Username, Passwd, slot, model, bn):
         #     product_serial = ''
     #print(board_serial, product_serial, slot)
     if board_serial and product_serial:
-        print("There is Board Serial and Product Serial on the device. Skip programming serial numbers on this device {}.\n Please check the information via Web GUI\n".format(slot))
-        logging.warning("There is Board Serial and Product Serial on the device. Skip programming serial numbers on this device {}.".format(bn))
+        print("There is Board Serial and Product Serial on the device. Skip programming on switch in {}.\n Please check the information via Web GUI\n".format(slot))
+        logging.warning("There is Board Serial and Product Serial on the device. Skip programming serial numbers on switch in {}.".format(bn))
     else:
         bin_file = create_new_bin(model, bn)
         if not bin_file:
@@ -209,13 +208,13 @@ def check_connectivity(ip):
     else:
         res = subprocess.run(['ping', '-c', '3', ip], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if res.returncode  != 0:
-        logging.warning("Failed to ping to  {}.".format(ip))
+        logging.error("Failed to ping to  {}.".format(ip))
         return False
     else:
         out_text = res.stdout.decode("utf-8", errors='ignore')
         #print(out_text)
         if 'Destination host unreachable' in out_text:
-            logging.warning("Destination host unreachable at {}.".format(ip))
+            logging.error("Destination host unreachable at {}.".format(ip))
             return False
         else:
             return True
@@ -267,7 +266,7 @@ def main():
                         field = re.sub(r'\(.*?\)', '', field)
                         data[field] = value
     except IOError as e:
-        print("\nconfig file is not available. Please run this program with config file again. Leave program!")
+        print("\nERROR!! config file is not available. Please run this program with config file again. Leave program!")
         logging.error("config file is not available.")
         sys.exit()
     #print(data)
@@ -275,23 +274,23 @@ def main():
     if 'CMM IP' in data.keys():
         ip = data['CMM IP']
     else:
-        print("CMM IP is missing. Leave program!")
+        print("ERROR!! CMM IP is missing. Leave program!")
         sys.exit()
 
     if 'CMM User Name' in data.keys():
         username =  data['CMM User Name']
     else:
-        print("CMM user name is missing. Leave program!")
+        print("ERROR!! CMM user name is missing. Leave program!")
         sys.exit()
 
     if 'CMM Password' in data.keys():
         passwd = data['CMM Password']
     else:
-        print("CMM Password is missing. Leave program!")
+        print("ERROR!! CMM Password is missing. Leave program!")
         sys.exit()
     print("\nChecking the connectivity to CMM")
     if not check_connectivity(ip):
-        print("Failed to access to CMM {}. Please check the connectivity and run this script again. Leave program!!.\n".format(ip))
+        print("ERROR!! Failed to access to CMM {}. Please check the connectivity and run this script again. Leave program!!.\n".format(ip))
         sys.exit()
 
     if sys.platform.lower() == 'win32':
@@ -307,8 +306,8 @@ def main():
             try:
                 output = subprocess.run(com + ['raw', '0x30', '0x33','0x0b', '0xa1'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             except Exception as e:
-                print("Error has occurred in read data from CMM. Skip programming A1.\n")
-                logging.error("Error has occurred in reading A1 IP. " + str(e))
+                print("ERROR!! Error has occurred in read data from CMM. Skip programming A1.\n")
+                logging.error("ERROR!! Error has occurred in reading A1 IP. " + str(e))
 
             A1_ip = ''
             if output.returncode == 0:
@@ -324,23 +323,23 @@ def main():
                 if model and board_number:
                     devices.append("A1\t{}\t{}".format(board_number, model))
                 else:
-                    print("Failed to get board serial number on A1. Skip programming A1!.\n")
-                    logging.error("ailed to get board serial number on A1. Skip programming A1!")
+                    print("ERROR!! Failed to get board serial number on A1. Skip programming A1!.\n")
+                    logging.error("ERROR!! Failed to get board serial number on A1. Skip programming A1!")
             else:
-                print("Failed to access to A1 {}. Skip programming A1!.\n".format(A1_ip))
-                logging.error("Fail to access to A1 {}. Skip programming A1!".format(A1_ip))
+                print("ERROR!! Failed to access to A1 {}. Skip programming A1!.\n".format(A1_ip))
+                logging.error("ERROR!! Fail to access to A1 {}. Skip programming A1!".format(A1_ip))
 
         else:
-            print("A1 Password is missing. Skip programming switch in A1!\n")
-            logging.error("A1 Password is missing. Skip programming switch in A1!\n")
+            print("ERROR!! A1 Password is missing. Skip programming switch in A1!\n")
+            logging.error("ERROR!! A1 Password is missing. Skip programming switch in A1!\n")
 
     if 'A2 User Name' in data.keys():
         if 'A2 Password' in data.keys():
             try:
                 output = subprocess.run( com + ['raw', '0x30', '0x33','0x0b', '0xa2'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             except Exception as e:
-                print("Error has occurred in read data from CMM. Skip programming A2.\n")
-                logging.error("Error has occurred in reading A2 IP. " + str(e))
+                print("ERROR!! Error has occurred in read data from CMM. Skip programming A2.\n")
+                logging.error("ERROR!! Error has occurred in reading A2 IP. " + str(e))
 
             A2_ip = ''
             if output.returncode == 0:
@@ -349,22 +348,22 @@ def main():
                     A2_ip = A2_ip + str(int(i, 16)) + '.'
                 A2_ip = A2_ip.rstrip(".")
             else:
-                print("Error has occurred in read data from CMM. Skip programming A2.\n")
-                logging.error("Fail to read A2 IP." + output.stderr.decode("utf-8", errors='ignore'))
+                print("ERROR!! Error has occurred in read data from CMM. Skip programming A2.\n")
+                logging.error("ERROR!! Fail to read A2 IP." + output.stderr.decode("utf-8", errors='ignore'))
             if check_connectivity(A2_ip):
                 (model, board_number) = telnet_to_switch(A2_ip)
                 if board_number and model:
                     devices.append("A2\t{}\t{}".format(board_number, model))
                 else:
-                    print("Failed to get board serial number on A2. Skip programming A2!\n")
-                    logging.error("ailed to get board serial number on A2. Skip programming A2!")
+                    print("ERROR!! Failed to get board serial number on A2. Skip programming A2!\n")
+                    logging.error("ERROR!! Failed to get board serial number on A2. Skip programming A2!")
             else:
-                print("Failed to access to A2 {}. Skip programming A2!\n".format(A2_ip))
-                logging.error("Fail to access to A2 {}. Skip programming A2!".format(A2_ip))
+                print("ERROR!! Failed to access to A2 {}. Skip programming A2!\n".format(A2_ip))
+                logging.error("ERROR!! Fail to access to A2 {}. Skip programming A2!".format(A2_ip))
 
         else:
-            print("A2 Password is missing. skip programming switch in A2!\n")
-            logging.error("A2 Password is missing. Skip programming switch in A2!\n")
+            print("ERROR!! A2 Password is missing. skip programming switch in A2!\n")
+            logging.error("ERROR!! A2 Password is missing. Skip programming switch in A2!\n")
     # if 'A1' in data.keys():
     #     if data['A1 Model'] and data['A1 Model'] != '':
     #         devices.append("A1\t{}\t{}".format(data['A1'], data['A1 Model']))
