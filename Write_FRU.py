@@ -289,11 +289,11 @@ def main():
     else:
         print("CMM Password is missing. Leave program!")
         sys.exit()
-
+    print("\nChecking the connectivity to CMM")
     if not check_connectivity(ip):
         print("Failed to access to CMM {}. Please check the connectivity and run this script again. Leave program!!.\n".format(ip))
         sys.exit()
-    print('Checking connectivity and collecting data.\n')
+
     if sys.platform.lower() == 'win32':
         tool_dir = 'tool'
         tool_cmd = f'{tool_dir}\ipmitool.exe'
@@ -301,6 +301,7 @@ def main():
         tool_cmd = 'ipmitool'
     com = [tool_cmd, '-H', ip, '-U', username, '-P', passwd]
     devices = []
+    print('Checking connectivity to switch and collecting data.\n')
     if 'A1 User Name' in data.keys():
         if 'A1 Password' in data.keys():
             try:
@@ -389,7 +390,6 @@ def main():
         print("Programming FRU on device in {}\n".format(slot))
         logging.info("Programming FRU {} in {}".format(bn,slot))
         Write_device(ip, username, passwd, slot, model, bn)
-
 
 if __name__ == '__main__':
     main()
