@@ -103,7 +103,7 @@ def Write_FRU(ip,username,passwd,bin_file,bn,slot):
         tool_cmd = f'{tool_dir}\ipmitool.exe'
     else:
         tool_cmd = 'ipmitool'
-    com = [tool_cmd, '-H', ip, '-U', username, '-P', passwd]
+    com = [tool_cmd,'-I', 'lanplus', '-H', ip, '-U', username, '-P', passwd]
     c1 = copy.deepcopy(com)
 
     run_ipmi(c1 + ['raw', '0x30', '0x6', '0x0'])
@@ -162,7 +162,7 @@ def Write_device(ip, Username, Passwd, slot, model, bn):
         tool_cmd = f'{tool_dir}\ipmitool.exe'
     else:
         tool_cmd = 'ipmitool'
-    com = [tool_cmd, '-H', ip, '-U', Username, '-P', Passwd]
+    com = [tool_cmd,'-I', 'lanplus', '-H', ip, '-U', Username, '-P', Passwd]
     board_serial = ''
     product_serial = ''
     (board_serial, product_serial) = get_serial(com, slot_map[slot])
@@ -298,7 +298,7 @@ def main():
         tool_cmd = f'{tool_dir}\ipmitool.exe'
     else:
         tool_cmd = 'ipmitool'
-    com = [tool_cmd, '-H', ip, '-U', username, '-P', passwd]
+    com = [tool_cmd,'-I', 'lanplus', '-H', ip, '-U', username, '-P', passwd]
     devices = []
     print('Checking connectivity to switch and collecting data.\n')
     if 'A1 User Name' in data.keys():
